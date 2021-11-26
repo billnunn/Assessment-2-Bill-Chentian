@@ -24,7 +24,7 @@ All files are Rmd and the HTML output of each is included.
 
 ## Requirements
 
-Requirements for each Rmd file is in the script.
+Requirements for each Rmd file are within each script.
 
 ## Evidence
 
