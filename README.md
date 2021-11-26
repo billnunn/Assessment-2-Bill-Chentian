@@ -30,7 +30,7 @@ Requirements for each Rmd file are within each script.
 
 Our working is shown in our own directories:
 
-* Bill_Evidence/
-* Chentian_Evidence/
+* Bill-Evidence/
+* Chentian-Evidence/
 
 Cheers
