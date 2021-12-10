@@ -1,0 +1,22 @@
+---
+title: "02-Initial Classification"
+author: "Bill"
+date: "10/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Need to read in the prepared dataset from Google drive behind the scenes**
+
+In this section we train and test a random forest classifier on the unenriched dataset. We sample the dataset to attain a training and test set yada yada...
+
+**Very standard Random Forest and performance digest**
+
+Let's investigate some variable importance metrics for this random forest.
+
+**Sensible variable importance metrics- we'll use exactly this code for final section**
+
+Thanks for bearing with us this far Dan! The sections which follow are the real meat of our report. We shall first enrich the dataset by considering graph embeddings.

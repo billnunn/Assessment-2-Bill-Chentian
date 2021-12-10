@@ -1,0 +1,35 @@
+---
+title: "01-Data"
+author: "Bill"
+date: "09/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Reading in the Data
+
+In this section we read in all the data we require for our analysis.
+
+**I will copy this code straight from Sorting_Data.R**
+
+## Size Problem
+
+The conn.log dataset is fairly large and both groups were severely impacted by the speed of their algorithms for attaching the Snort logs. The size of the connection log made it unfeasible to check whether every connection resulted in a snort alert. After some serious deliberation Chentian and I decided to limit our investigation to the first **hour (this may need to be changed)** of the connections. We'd checked the distribution of Snort alerts against time in our EDA and saw enough alerts within the first **hour** to justify this decision:
+
+**Plot the distribution below- again straight from my EDA**
+
+In the preceding section we imported the Snort logs for the full time interval, given we will now only consider the first **hour** of connections we only need the first **hour** of Snort logs.
+
+**Code for limiting slogs to first hour**
+
+As has already been stated, the algorithm for attaching the Snort alerts was no Asafa Powell. We therefore just present the code of our algorithm below and read it's pre-computed output from Google drive.
+
+**Algorithm code- straight from my EDA**
+
+**Don't know how to use Google drive. Do you know how we'd set this up?**
+
+Great! We can now add our classification labels and get on with the interesting stuff!
+
