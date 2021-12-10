@@ -16,9 +16,12 @@ All report content is in the directory:
 
 Our report should be read in the following order:
 
-* 01-
-* 02-
-* 03-
+* 00-Introduction
+* 01-Data
+* 02-Initial_Classification
+* 03-Graph_Embedding
+* 04-
+* 05-Final_Classification
 
 All files are Rmd and the HTML output of each is included.
 
