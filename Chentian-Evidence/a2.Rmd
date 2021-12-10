@@ -1,0 +1,85 @@
+---
+title: "a2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+read data
+```{r}
+getwd()
+```
+
+```{r}
+setwd("C:/Users/Cryst/Documents/")
+```
+
+```{r}
+data <- read.csv("conn.log.gz",sep = "\t")
+data <- data.frame(data)
+names(data) <- c("ts", "uid", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "proto", "service", "duration", "orig_bytes", "resp_bytes", "conn_state", "local_orig", "missed_bytes", "history", "orig_pkts", "orig_ip_bytes", "resp_pkts", "resp_ip_bytes", "tunnel_parents" )
+print(data[1:4,])
+```
+
+```{r}
+summary(data)
+```
+```{r}
+df = data
+df$ts <- df$ts-min(df$ts)
+print(min(df$ts))
+```
+Order the frame by time.
+```{r}
+df <- df[order(df$ts),]
+print(df[dim(df)[1],'ts'] == max(df$ts)) # assess the order
+```
+the code with problem is HERE
+```{r}
+N = list()
+t = list()
+i0 = 1
+for(i in c(1:dim(df)[1])){
+  n0 = df[i0, "ts"]
+  if(df[i, "ts"] != n0){
+    N <- append(N, i-i0)
+    t <- append(t, n0)
+    i0 <- i
+  }
+}
+
+```
+
+test the code in a smaller scale of data
+```{r}
+df1 = df[1:100,]
+N = list()
+t = list()
+i0 = 1
+for(i in c(1:dim(df1)[1])){
+  n0 = df1[i0, "ts"]
+  if(df1[i, "ts"] != n0){
+    N <- append(N, i-i0)
+    t <- append(t, n0)
+    i0 <- i
+  }
+}
+```
+
+```{r}
+print(N)
+```
+
+```{r}
+dim(df1[1])
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
