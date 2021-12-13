@@ -1,0 +1,197 @@
+---
+title: "a2-markov-based-on-snort-ip"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+read data
+```{r}
+setwd("C:/Users/Cryst/Documents/")
+```
+
+```{r}
+library(data.table)
+```
+
+```{r}
+data <- fread("http://www.secrepo.com/maccdc2012/conn.log.gz")
+names(data) <- c("ts", "uid", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "proto", "service", "duration", "orig_bytes", "resp_bytes", "conn_state", "local_orig", "missed_bytes", "history", "orig_pkts", "orig_ip_bytes", "resp_pkts", "resp_ip_bytes", "tunnel_parents" )
+print(head(data))
+```
+
+```{r}
+snort1 <- read.csv("out1.csv")
+snort2 <- read.csv("out2.csv")
+snort3 <- read.csv("out3.csv")
+
+```
+
+```{r}
+snort1
+```
+
+```{r}
+snort2
+```
+
+```{r}
+snort3
+```
+
+```{r}
+data_snort2 <- data[snort2$x]
+```
+
+```{r}
+unique(data_snort2$id.orig_h)
+```
+All attacks are from 10 originating ip address. 
+```{r}
+unique(data_snort2[,c("id.orig_h", "id.resp_h")])
+```
+and has 58 (originating, responding) ip address paires.
+```{r}
+data_snort2[,c("id.orig_h", "id.resp_h")]
+data2<-cbind(data_snort2,snort2$y)
+```
+
+```{r}
+print("table of originating ips in data2:")
+table(data2$id.orig_h)
+print("table of Responding ips in data2:")
+table(data2$id.resp_h)
+```
+
+```{r}
+4855/4975
+```
+In snort2, 97.59% attacks are from the ip address "192.168.202.79", 
+```{r}
+print("table resopnding ip address attacked by \"192.168.202.79\": ")
+table(data2[which(data2$id.orig_h == "192.168.202.79")]$id.resp_h)
+```
+take the responding ip address as a process, assess whether it is a Markov chain:
+```{r}
+library(markovchain)
+verifyMarkovProperty(data2[which(data2$id.orig_h == "192.168.202.79")]$id.resp_h)
+#verifyMarkovProperty(data2$id.resp_h)
+```
+
+```{r}
+#verifyMarkovProperty(data2[which(data2$id.orig_h == "192.168.202.79")]$V2)
+verifyMarkovProperty(data2$V2)
+```
+Thus, both originating ip address and attack type processes are not Markov Process
+Now verifying them in snort3
+```{r}
+data_snort3 <- data[snort3$x]
+```
+
+```{r}
+unique(data_snort3$id.orig_h)
+```
+All attacks are from 5 originating ip address. 
+```{r}
+unique(data_snort3[,c("id.orig_h", "id.resp_h")])
+```
+
+and has 15 (originating, responding) ip address paires.
+```{r}
+data_snort3[,c("id.orig_h", "id.resp_h")]
+data3<-cbind(data_snort3,snort3$y)
+```
+
+```{r}
+print("table of originating ips in data3:")
+table(data3$id.orig_h)
+print("table of Responding ips in data3:")
+table(data3$id.resp_h)
+```
+
+```{r}
+11529/nrow(data3)
+```
+In snort3, 99.9% attacks are from the ip address "192.168.202.79", 
+```{r}
+print("table resopnding ip address attacked by \"192.168.202.79\": ")
+table(data3[which(data3$id.orig_h == "192.168.202.79")]$id.resp_h)
+```
+take the responding ip address as a process, assess whether it is a Markov chain:
+```{r}
+library(markovchain)
+verifyMarkovProperty(data3[which(data3$id.orig_h == "192.168.202.79")]$id.resp_h)
+#verifyMarkovProperty(data3$id.resp_h)
+```
+
+```{r}
+verifyMarkovProperty(data3[which(data3$id.orig_h == "192.168.202.79")]$V2)
+#verifyMarkovProperty(data3$V2)
+```
+Thus, both originating ip address and attack type processes are not Markov Process.
+```{r}
+data_snort <- data[c(snort1$x, snort2$x, snort3$x)]
+```
+
+```{r}
+unique(data_snort$id.orig_h)
+```
+
+```{r}
+unique(data_snort[,c("id.orig_h", "id.resp_h")])
+```
+
+```{r}
+snort <- rbind(snort1, snort2, snort3)
+data0<-cbind(data_snort,snort$y)
+data0
+```
+
+```{r}
+print("table of originating ips in snort:")
+table(data0$id.orig_h)
+print("table of Responding ips in snort:")
+table(data0$id.resp_h)
+```
+
+```{r}
+16387/nrow(data0)
+```
+
+In snort, 99.2% attacks are from the ip address "192.168.202.79", 
+```{r}
+print("table resopnding ip address attacked by \"192.168.202.79\": ")
+table(data0[which(data0$id.orig_h == "192.168.202.79")]$id.resp_h)
+```
+take the responding ip address as a process, assess whether it is a Markov chain:
+```{r}
+library(markovchain)
+verifyMarkovProperty(data0[which(data0$id.orig_h == "192.168.202.79")]$id.resp_h)
+verifyMarkovProperty(data0$id.resp_h)
+```
+Thus, both originating ip address and attack type processes are not Markov Process.
+
+```{r}
+full_data <- read.csv("ProcessedData.csv")
+print(head(full_data))
+library(markovchain)
+verifyMarkovProperty(full_data$conn_type)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

@@ -1,0 +1,177 @@
+---
+title: "a2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+read data
+```{r}
+getwd()
+```
+
+```{r}
+setwd("C:/Users/Cryst/Documents/")
+```
+
+```{r}
+data <- fread("http://www.secrepo.com/maccdc2012/conn.log.gz")
+names(data) <- c("ts", "uid", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "proto", "service", "duration", "orig_bytes", "resp_bytes", "conn_state", "local_orig", "missed_bytes", "history", "orig_pkts", "orig_ip_bytes", "resp_pkts", "resp_ip_bytes", "tunnel_parents" )
+print(data[1:4,])
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+df = data
+df$ts <- df$ts-min(df$ts)
+print(min(df$ts))
+```
+Order the frame by time.
+```{r}
+df <- df[order(df$ts),]
+print(df[dim(df)[1],'ts'] == max(df$ts)) # assess the order
+```
+Calculate the number of connects in each time stamp, choose each number as a state:
+```{r}
+ts_list <- unique(df$ts)
+ts_count <- table(df$ts)
+```
+
+```{r}
+ts_list
+```
+
+```{r}
+ts_count
+```
+ts_count shows the number of connections at each time stamp,i.e. at time 62.3800001144409, 3 connections happened
+calculate the numbers of each states:
+```{r}
+count_stat <- table(as.numeric(ts_count))
+count_stat
+```
+Thus, there are state 1 are only hit 604229 times, state 2 are only hit 211377 times, ... only one time stamp have 729 connections, which is state 729. 
+```{r}
+1000/length(ts_count)
+```
+Omit the states hit less than 1000 times, which counts 0.052%, mark them as state 0, which means we only keep the state that less that 100 connection occured in a time stamp. the state space would be {0,1,2,...,100}.
+```{r}
+test<- as.data.frame(count_stat)
+test_less <- test[which(test$Freq<1000),]
+test_less
+```
+
+```{r}
+less_states <- test_less$Var1
+```
+
+```{r}
+ts_chain <- as.data.frame(ts_count)
+ts_chain
+```
+
+```{r}
+for(i in 1:nrow(ts_chain)){
+  if(ts_chain$Freq[i] %in% less_states){
+    ts_chain$Freq[i]<- 0
+  } 
+}
+```
+
+```{r}
+ts_chain
+```
+
+```{r}
+install.packages("markovchain")
+library(markovchain)
+verifyMarkovProperty(ts_chain$Freq)
+```
+Since the p-value shown is 0, we reject the null hypothesis that the sequence follows the Markov property. 
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+the code with problem is HERE
+```{r}
+N = list()
+t = list()
+i0 = 1
+for(i in c(1:dim(df)[1])){
+  n0 = df[i0, "ts"]
+  if(df[i, "ts"] != n0){
+    N <- append(N, i-i0)
+    t <- append(t, n0)
+    i0 <- i
+  }
+}
+
+```
+
+test the code in a smaller scale of data
+```{r}
+df1 = df[1:100,]
+N = list()
+t = list()
+i0 = 1
+for(i in c(1:dim(df1)[1])){
+  n0 = df1[i0, "ts"]
+  if(df1[i, "ts"] != n0){
+    N <- append(N, i-i0)
+    t <- append(t, n0)
+    i0 <- i
+  }
+}
+```
+
+```{r}
+print(N)
+```
+
+```{r}
+dim(df1[1])
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
