@@ -1,0 +1,300 @@
+---
+title: "04-Markov-Property"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+in this report, we will verify the Markov property of: "conn_type", "orig_ip", "orig_port", number of connections on each time stamp (denote as $N_t$), number of malicious connections on each time stamp (i.e. $N_t$ | conn_type == 1)
+
+
+read data
+```{r}
+setwd("C:/Users/Cryst/Documents/")
+```
+
+```{r}
+library(data.table)
+```
+
+```{r}
+full_data <- read.csv("ProcessedData.csv")
+```
+
+```{r}
+head(full_data)
+```
+
+```{r}
+library(markovchain)
+```
+## 1.try to fit "conn_type" into markov model
+```{r}
+unique(full_data$conn_type)
+```
+
+```{r}
+verifyMarkovProperty(full_data$conn_type)
+```
+
+## 2.try to fit ip addresses into markov model:
+
+```{r}
+sum(is.na(full_data$orig_ip)==TRUE)
+```
+no missing data in "orig_ip" column
+```{r}
+length(unique(full_data$orig_ip))
+```
+there are 180 unique orginating ip address in total, now count the times of each address shows:
+```{r}
+head(table(full_data$orig_ip))
+```
+
+
+no orginating ip address is missing 
+```{r}
+1000/length(full_data$orig_ip)
+```
+find out the address that occur less than 1000 times(0.07% of tota connections), mark them as "other"
+```{r}
+orig_ip_table <- as.data.frame(table(full_data$orig_ip))
+minor_ips <- orig_ip_table[which(orig_ip_table$Freq<1000),]
+```
+
+```{r}
+minor_states <- minor_ips$Var1
+orig_ip_chain <- as.data.frame(full_data$orig_ip)
+names(orig_ip_chain)<-"orig_ips"
+```
+
+```{r}
+for(i in 1:nrow(orig_ip_chain)){
+  if(orig_ip_chain$orig_ips[i] %in% minor_states){
+    orig_ip_chain$orig_ips[i]<- "other"
+  } 
+}
+```
+
+```{r}
+verifyMarkovProperty(orig_ip_chain$orig_ips)
+```
+thus, originating ip address doesn't fit markov chain
+
+now fit responding ip address in markov chain
+```{r}
+sum(is.na(full_data$resp_ip)==TRUE)
+```
+no missing data in "resp_ip" column
+```{r}
+length(unique(full_data$resp_ip))
+```
+there are 2715 unique orginating ip address in total, now count the times of each address shows:
+```{r}
+head(table(full_data$resp_ip))
+```
+
+```{r}
+1000/length(full_data$resp_ip)
+```
+find out the address that occur less than 1000 times(0.07% of tota connections), mark them as "other"
+```{r}
+resp_ip_table <- as.data.frame(table(full_data$resp_ip))
+minor_ips <- resp_ip_table[which(resp_ip_table$Freq<1000),]
+```
+
+```{r}
+minor_states <- minor_ips$Var1
+resp_ip_chain <- as.data.frame(full_data$resp_ip)
+names(resp_ip_chain)<-"resp_ips"
+```
+
+```{r}
+for(i in 1:nrow(resp_ip_chain)){
+  if(resp_ip_chain$resp_ips[i] %in% minor_states){
+    resp_ip_chain$resp_ips[i]<- "other"
+  } 
+}
+```
+
+```{r}
+verifyMarkovProperty(resp_ip_chain$resp_ip)
+```
+thus, originating ip address doesn't fit markov chain
+
+## 3.try to fit ports into markov model:
+
+```{r}
+sum(is.na(full_data$orig_port)==TRUE)
+```
+no missing data in "orig_port" column
+```{r}
+length(unique(full_data$orig_port))
+```
+there are 34309 unique orginating ip address in total, now count the times of each address shows:
+```{r}
+head(table(full_data$orig_port))
+```
+
+```{r}
+1000/length(full_data$orig_ip)
+```
+find out the ports that occur less than 1000 times(0.07% of tota connections), mark them as "other"
+```{r}
+orig_port_table <- as.data.frame(table(full_data$orig_port))
+minor_ports <- orig_port_table[which(orig_port_table$Freq<1000),]
+```
+
+```{r}
+minor_states <- minor_ports$Var1
+orig_port_chain <- as.data.frame(full_data$orig_port)
+names(orig_port_chain)<-"orig_ports"
+```
+
+```{r}
+for(i in 1:nrow(orig_port_chain)){
+  if(orig_port_chain$orig_ports[i] %in% minor_states){
+    orig_port_chain$orig_ports[i]<- "other"
+  } 
+}
+```
+
+```{r}
+verifyMarkovProperty(orig_ip_chain$orig_ips)
+```
+
+4. try to fit the number of connections in each time stamp into markov chain
+```{r}
+df = data
+df$ts <- df$ts-min(df$ts)
+print(min(df$ts))
+```
+
+```{r}
+df <- df[order(df$ts),]
+print(df[dim(df)[1],'ts'] == max(df$ts)) # assess the order
+```
+
+Calculate the number of connects in each time stamp, choose the numbers as states:
+```{r}
+ts_list <- unique(df$ts)
+ts_count <- table(df$ts)
+```
+
+```{r}
+head(ts_count)
+```
+
+ts_count shows the number of connections at each time stamp,i.e. at time 0, there were 4 connections; at time 1.34999990463257, there was only 1 connection
+
+calculate the numbers of each states:
+```{r}
+count_stat <- table(as.numeric(ts_count))
+head(count_stat)
+```
+Thus, state 1 are hit 604229 times, state 2 are hit 211377 times, ... only one time stamp have 729 connections.
+```{r}
+1000/length(ts_count)
+```
+Omit the states hit less than 1000 times, which counts 0.052%, mark them as state 0, which means we only keep the state that less that 100 connections occurred in a time stamp. the state space would be {0,1,2,...,100}.
+
+```{r}
+temp<- as.data.frame(count_stat)
+minor <- temp[which(temp$Freq<1000),]
+minor
+```
+```{r}
+minor_states <- minor$Var1
+```
+
+```{r}
+ts_chain <- as.data.frame(ts_count)
+ts_chain
+```
+
+```{r}
+for(i in 1:nrow(ts_chain)){
+  if(ts_chain$Freq[i] %in% minor_states){
+    ts_chain$Freq[i]<- 0
+  } 
+}
+```
+
+```{r}
+names(ts_chain) <- c("ts", "N_t")
+ts_chain
+```
+
+```{r}
+verifyMarkovProperty(ts_chain$Freq)
+```
+Since the p-value shown is 0, we reject the null hypothesis that the sequence follows the Markov property. 
+
+5. try to fit the number of malicious connections in each time stamp into markov chain
+```{r}
+df = full_data[which(full_data$conn_type == 1),]
+df$ts <- df$ts-min(df$ts)
+print(min(df$ts))
+```
+Order the frame by time.
+```{r}
+df <- df[order(df$ts),]
+print(df[dim(df)[1],'ts'] == max(df$ts)) # assess the order
+```
+Calculate the number of connects in each time stamp, choose each number as a state:
+```{r}
+ts_list <- unique(df$ts)
+ts_count <- table(df$ts)
+```
+
+```{r}
+head(ts_count)
+```
+ts_count shows the number of connections at each time stamp,i.e. at time 62.3800001144409, 3 connections happened
+calculate the numbers of each states:
+```{r}
+count_stat <- table(as.numeric(ts_count))
+count_stat
+```
+```{r}
+ts_chain<-as.data.frame(ts_count)
+verifyMarkovProperty(ts_chain$Freq)
+```
+Since the p-value shown is 0, we reject the null hypothesis that the sequence follows the Markov property. 
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+
+
+
