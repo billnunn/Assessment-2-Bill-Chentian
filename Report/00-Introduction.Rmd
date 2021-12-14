@@ -13,7 +13,7 @@ We have chosen to use the conn.log from the MACCDC 2012 dataset for our analysis
 
 1. We run a random forest classifier on our data using the set of variables which were already present in the conn.log, nothing fancy or interesting.
 
-2. We then enrich the set of variables. Bill has become extremely interested in graph embedding, and enriches the dataset with variables that are the position vectors for a variety of graph embeddings. Chentian has...**(add what you would like to do/have done Chentian :-)**.
+2. We then enrich the set of variables. Bill has become extremely interested in graph embedding, and enriches the dataset with variables that are the position vectors for a variety of graph embeddings. Chentian has verified Markov Property of various features in the dataset.
 
 3. After our exotic variable enrichment we re-train our random forest on the new dataset.
 
