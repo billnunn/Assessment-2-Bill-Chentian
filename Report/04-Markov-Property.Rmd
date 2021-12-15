@@ -1,8 +1,6 @@
 ---
 title: "04-Markov-Property"
-output:
-  html_document: default
-  pdf_document: default
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -166,11 +164,12 @@ for(i in 1:nrow(orig_port_chain)){
 verifyMarkovProperty(orig_ip_chain$orig_ips)
 ```
 
-4. try to fit the number of connections in each time stamp into markov chain
+## 4. try to fit the number of connections in each time stamp into markov chain
 ```{r}
-df = data
-df$ts <- df$ts-min(df$ts)
-print(min(df$ts))
+df = full_data
+min_ts = min(df$ts)
+df$new_ts <- df$new_ts-min_ts
+print(min(df$new_ts))
 ```
 
 ```{r}
@@ -264,37 +263,5 @@ ts_chain<-as.data.frame(ts_count)
 verifyMarkovProperty(ts_chain$Freq)
 ```
 Since the p-value shown is 0, we reject the null hypothesis that the sequence follows the Markov property. 
-
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-
-
 
 
