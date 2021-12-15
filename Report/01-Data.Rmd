@@ -7,29 +7,166 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(data.table)
 ```
 
+```{r, include=FALSE}
+# Hi Dan, Bill here. I wouldn't bother running the code in this section if I were you: it takes a long time to run, you'd need to download the Snort logs yourself, and fiddle with various paths. This section is really just to explain how the data was processed, and touch on some of the problems encountered. The HTML suffices to get a good idea of my process.
+```
 ## Reading in the Data
 
-In this section we read in all the data we require for our analysis.
+In this section we read in all the data we require for our analysis. We start by reading in the connection log.
 
-**I will copy this code straight from Sorting_Data.R**
+```{r}
+df <- fread("http://www.secrepo.com/maccdc2012/conn.log.gz", nrows = 4000000)
+```
+
+We then add the column names, having found these in the Bro log variable names document. We then remove the empty columns and also note we can remove the UID given the tunnel data is absent.
+
+```{r}
+colnames(df) <- c("ts","uid","orig_ip","orig_port","resp_ip","resp_port",
+                  "proto","service","duration","orig_bytes","resp_bytes",
+                  "conn_state","local_orig", "missed_bytes","history",
+                  "orig_pkts","orig_ip_bytes","resp_pkts","resp_ip_bytes",
+                  "tunnel_parents")
+
+df <- df[,-c("uid", "local_orig", "tunnel_parents")]
+```
+
+We set the minimum time-stamp to zero and round each to two decimal places, and then order the dataframe by time-stamp.
+
+```{r}
+df$ts <- round(df$ts - rep(min(df$ts), nrow(df)), digits=2)
+df <- df[order(df$ts),]
+df <- df
+```
+
+Lastly we replace any missing data values with NA, and check that everything has worked.
+
+```{r}
+df <- na_if(df, "-")
+head(df)
+```
+
+Now we read in the Snort logs. Please download and unzip from https://www.secrepo.com/maccdc2012/maccdc2012_fast_alert.7z . Set your path for where you saved the logs, and change the prefix and suffix. My logs are called "FastSnort1.txt", "FastSnort2.txt", etc and thus my prefix is FastSnort and the suffix is ".txt".
+
+```{r}
+path <- "/Users/willnunn/Desktop/Assessment/FastSnort"
+
+prefix <- "FastSnort"
+suffix <- ".txt"
+```
+
+Now we read in the Snort logs with the following piece of code:
+
+```{r}
+fast_slogs <- paste(path, "/", prefix, as.symbol(1), suffix, sep="") %>%
+  fread(sep="\t",header=F)
+
+for(i in c(2:5, 7:17)){
+  l <- paste(path, "/", prefix, as.symbol(i), suffix, sep="") %>%
+    fread(sep="\t", header=F)
+  fast_slogs <- rbind(fast_slogs, l)
+}
+rm(i,l)
+rm(suffix, prefix, path)
+```
+
+Unhelpfully, the time format in `fast_slogs` is different to the time-stamps in `df`. To aid with formatting the time I wrote the following function.
+
+```{r}
+convert_time <- function(string){
+  day <- 86400 * (as.numeric(substr(string, 4, 5)) - 16)
+  hour <- 3600 * (as.numeric(substr(string, 7, 8)) - 7)
+  minute <- 60 * (as.numeric(substr(string, 10, 11))- 30)
+  second <- as.numeric(substr(string, 13, 18))
+  return(day + hour + minute + second)
+}
+```
+
+We may now easily add derive the time-stamp for each entry in `fast_slogs`.
+
+```{r}
+colnames(fast_slogs) <- c("snort")
+fast_slogs <- fast_slogs %>% mutate(ts = convert_time(substr(snort, 1, 21)))
+fast_slogs <- fast_slogs[order(fast_slogs$ts),]
+```
+
+And, as before, we run a sanity check.
+
+```{r}
+head(fast_slogs)
+```
 
 ## Size Problem
 
-The conn.log dataset is fairly large and both groups were severely impacted by the speed of their algorithms for attaching the Snort logs. The size of the connection log made it unfeasible to check whether every connection resulted in a snort alert. After some serious deliberation Chentian and I decided to limit our investigation to the first **hour (this may need to be changed)** of the connections. We'd checked the distribution of Snort alerts against time in our EDA and saw enough alerts within the first **hour** to justify this decision:
+The conn.log dataset is fairly large and both groups were severely impacted by the speed of their algorithms for attaching the Snort logs. The size of the connection log made it unfeasible to check whether every connection resulted in a Snort alert. After some serious deliberation Chentian and I decided to limit our investigation to the first **forty minutes (this may need to be changed)** of the connections. I'd checked the distribution of Snort alerts against time in my EDA and saw enough alerts within the first **forty minutes** to justify this decision.
 
-**Plot the distribution below- again straight from my EDA**
+```{r}
+hist(fast_slogs[which(fast_slogs$ts < 2400),]$ts, breaks = 500, main = "Snort Alert Frequency by Time-Stamp",
+xlab = "Time-Stamp (Seconds)")
+```
 
-In the preceding section we imported the Snort logs for the full time interval, given we will now only consider the first **hour** of connections we only need the first **hour** of Snort logs.
+In the preceding section we imported the Snort logs for the full time interval, given we will now only consider the first **forty minutes** of connections we reduce our dataframes.
 
-**Code for limiting slogs to first hour**
+```{r}
+df <- df[which(df$ts < 2400),]
+slogs <- fast_slogs[which(fast_slogs$ts < 2400.1),]
+rm(fast_slogs)
+```
 
-As has already been stated, the algorithm for attaching the Snort alerts was no Asafa Powell. We therefore just present the code of our algorithm below and read it's pre-computed output from Google drive.
+As has already been stated, the algorithm for attaching the Snort alerts was no Asafa Powell. We therefore just present the code of our algorithm below and read it's pre-computed output from Google drive. Our algorithm requires that `df` has a `row_identifier` variable.
 
-**Algorithm code- straight from my EDA**
+```{r, eval=FALSE}
+row_identifier <- 1:nrow(df)
+df <- cbind(df, row_identifier)
+rm(row_identifier)
+```
 
-**Don't know how to use Google drive. Do you know how we'd set this up?**
+The algorithm I give below is the algorithm used to derive the list of rows which resulted in Snort alerts. I wrote similar algorithms for the same task which were much faster (linear in number of Snort alerts attached), but I wasn't totally confident that these attached all the Snort logs correctly. I was more concerned by correctness than speed so opted for the safer bet.
 
-Great! We can now add our classification labels and get on with the interesting stuff!
+```{r, eval=FALSE}
+att <- c()
 
+for(i in 1:nrow(slogs)){
+  time_bound <- as.numeric(slogs[i,2])
+  reduced_df <- df[which(between(df$ts, time_bound - 0.1, time_bound)),]
+  for(j in 1:nrow(reduced_df)){
+    if(grepl(as.character(reduced_df[j,2]), slogs[i,1])&
+       grepl(as.character(reduced_df[j,3]), slogs[i,1])&
+       grepl(as.character(reduced_df[j,4]), slogs[i,1])&
+       grepl(as.character(reduced_df[j,5]), slogs[i,1])){
+      att <- c(att, as.character(reduced_df[j,18]))
+    }
+  }
+}
+
+att <- sort(unique(att))
+```
+
+The search over `reduced_df`, which can be quite large when there's lots of connections in the small time interval, is the subroutine which severely limits the speed of this algorithm. The other subroutine which could also be optimised is the derivation of `reduced_df` using the `which` procedure- one could make use of the time ordering and caching to quicken the derivation.
+
+We now retrieve the pre-computed labels:
+
+```{r}
+att <- read.csv("/Users/willnunn/Desktop/Assessment/FirstForty.csv",
+                row.names = 1)
+```
+
+We can now add our labels and prepare ourselves for classification.
+
+```{r}
+conn_type <- rep(0, nrow(df))
+conn_type[att$x] = 1
+df <- cbind(df, conn_type)
+rm(conn_type, slogs, att)
+```
+
+Finally we check that the 3rd, 5th and 6th values of the `conn_type` column are all `1`.
+
+```{r}
+head(df$conn_type, 6)
+```
+
+Excellent! We use this dataset for the rest of the project. 

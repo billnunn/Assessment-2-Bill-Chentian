@@ -7,16 +7,45 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(randomForestSRC)
 ```
 
 **Need to read in the prepared dataset from Google drive behind the scenes**
+**For now:**
 
-In this section we train and test a random forest classifier on the unenriched dataset. We sample the dataset to attain a training and test set yada yada...
+```{r}
+df <- read.csv("/Users/willnunn/Desktop/Assessment/ProcessedData.csv",
+                row.names = 1)
+df$conn_type <- as.factor(df$conn_type)
+```
 
-**Very standard Random Forest and performance digest**
+In this section we train and test a random forest classifier on the unenriched dataset. To make the work in this section comparable with later work we fix our training set to be all connections with timestamp up to 2000 seconds, and fix the test set be all data after this time.
 
-Let's investigate some variable importance metrics for this random forest.
+```{r}
+train_df <- df[which(df$ts <= 2000),]
+test_df <- df[which(df$ts > 2000),]
+nrow(train_df) + nrow(test_df) == nrow(df)
+```
 
-**Sensible variable importance metrics- we'll use exactly this code for final section**
+Before we dive into running our classifier let us consider our objectives with regard to of our training and test set. Since we've split the data by timestamp, it's clear that the test set emulates a set of future connections. Given the distribution of malicious connections is nowhere near uniform with respect to time (see the figure beneath), and each decision tree in the random forest is constructed via recursive partitioning, it makes little sense to train the random forest on time when our aim is to predict future attacks.
 
-Thanks for bearing with us this far Dan! The sections which follow are the real meat of our report. We shall first enrich the dataset by considering graph embeddings.
+```{r}
+hist(df[which(df$conn_type == 1),]$ts, breaks = 24, xlab = "Timestamp (Seconds)",
+     main = "Malicious Connection Frequency")
+```
+
+Bearing the above in mind, we train the random forest classifier on all the non-character variables except `ts`.
+
+```{r}
+set.seed(31)
+rf <- rfsrc(conn_type~., data = train_df[,-c(1,2,4,6,7,11,13)], 
+            ntree = 10, na.action = "na.impute", importance = T)
+
+predict(rf, data = test_df[,-c(1,2,4,6,7,11,13)], na.action = "na.impute")
+
+print(rf$importance)
+```
+
+It's important to note that entries with missing data weren't discarded, instead data was imputed using the algorithm described in [1]. Secondly, the variable importance measure is calculated using the method described in [2]. While it could be argued that we could find a more tailor-made variable importance measure, I don't think that this matters too much when we consider the thrust of the project: we are really just looking for a qualitative change in the behavior of our classifier after enriching the dataset. And as long as our methodology is consistent, our comparison is likely to be meaningful.
+
+Thanks for bearing with us this far Dan! The sections which follow are the interesting parts of our report.

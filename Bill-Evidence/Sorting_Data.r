@@ -6,7 +6,7 @@ library(dplyr)
 
 # fread is a beast.
 
-df <- fread("http://www.secrepo.com/maccdc2012/conn.log.gz")
+df <- fread("http://www.secrepo.com/maccdc2012/conn.log.gz", nrows=1400000)
 
 # Add column names, from the Bro variable name document.
 colnames(df) <- c("ts","uid","orig_ip","orig_port","resp_ip","resp_port",
@@ -24,6 +24,9 @@ df$ts <- round(df$ts - rep(min(df$ts), nrow(df)), digits=2)
 
 # Order the frame by time.
 df <- df[order(df$ts),]
+
+# Replace missing data with NA.
+df <- na_if(df, "-")
 
 # # Add row_identifier, this will be useful when attaching the snort logs.
 # row_identifier <- 1:22694356
@@ -70,7 +73,7 @@ rm(row_identifier)
 # and prefix, suffix accordingly.
 
 # Set path here.
-path <- "/Users/willnunn/Desktop/FastSnort"
+path <- "/Users/willnunn/Desktop/Assessment/FastSnort"
 setwd(path)
 
 # My logs are called "FastSnort1.txt", "FastSnort2.txt",... hence:
@@ -152,6 +155,7 @@ out1 <- cbind(x, y)
 rm(x,y)
 out1
 
+
 # ==============================================================
 # And the second:
 
@@ -226,4 +230,35 @@ write.csv(out2, file="out2.csv")
 write.csv(out3, file="out3.csv")
 
 # Want to attach these to the data frames now!
+
+
+# ==============================================================
+
+# Lets investigate the how many connections occur in the first 40 mins.
+
+df <- fread("http://www.secrepo.com/maccdc2012/conn.log.gz", nrows=10000000)
+
+# Add column names, from the Bro variable name document.
+colnames(df) <- c("ts","uid","orig_ip","orig_port","resp_ip","resp_port",
+                  "proto","service","duration","orig_bytes","resp_bytes",
+                  "conn_state","local_orig", "missed_bytes","history",
+                  "orig_pkts","orig_ip_bytes","resp_pkts","resp_ip_bytes",
+                  "tunnel_parents")
+
+# Remove the empty columns. Can also remove UID given tunneling data is
+# absent.
+df <- df[,-c("uid", "local_orig", "tunnel_parents")]
+
+# Set the minimum timestamp to zero and round to 2 decimal places.
+df$ts <- round(df$ts - rep(min(df$ts), nrow(df)), digits=2)
+
+# Order the frame by time.
+df <- df[order(df$ts),]
+
+# Replace missing data with NA.
+df <- na_if(df, "-")
+
+forty_min_df <- df[which(df$ts < 2400),]
+forty_min_slogs <- fast_slogs[which(fast_slogs$ts < 2400),]
+
 

@@ -7,8 +7,124 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(data.table)
+library(Matrix)
+library(irlba)
+library(Rtsne)
 ```
 
-**Fill**
+## Motivation
+
+It is natural to think of each connection as linking the origin and response IPs, and so we can view our list of connections as defining the edge set of a graph on the set of IPs. A graph embedding is a 'drawing' of the graph in some space i.e. assigning a position to each vertex. We want to embed our connection log graph. I first learnt about some graph embedding techniques in Patrick's lectures and was absolutely fascinated to see examples in which useful information was retrievable from the graph embedding. Consider the following example: let our dataset consist of airports (nodes) and the list of flights in a given month (edges), we want to see what information is recoverable. With a spectral embedding and subsequent dimension reduction methods we see a meaningful interpretation of the airports' geographic positions, just from the connectivity data! Training some sort of classifier on the labeled positions given below could produce sensible guess for what continent an unseen airport is in given its position in the latent space.
+
+<center>
+
+![Where node colour denotes continent. Source [3].](FlightData.png)
+
+</center>
+
+My hope is that the the IPs which engaging in malicious nodes have different connectivity behavior to the benign nodes, and therefore some embedding technique might separate these nodes in the latent space.
+
+## First Embedding
+
+We first find a spectral embedding of our data following the method outlined in [4]. Let's read in our data and reduce it to the data we need.
+
+```{r}
+df <- read.csv("/Users/willnunn/Desktop/Assessment/ProcessedData.csv",
+               row.names = 1)
+df <- df[,c(1,2,4,18)]
+```
+
+We make dataframes of the originator and endpoint response IPs and assign each unique IP a node number. Note that we also assign the rownames to be the IPs, this helps with easy (and fast) accessing.
+
+```{r}
+orig_n <- data.frame(1:length(unique(df$orig_ip)), unique(df$orig_ip))
+row.names(orig_n) <- unique(df$orig_ip)
+head(orig_n)
+
+resp_n <- data.frame(1:length(unique(df$resp_ip)), unique(df$resp_ip))
+row.names(resp_n) <- unique(df$resp_ip)
+head(resp_n)
+```
+
+We also maintain lists of whether each IP was involved in Snort alert worthy activity, these will be used to colour figures.
+
+```{r}
+col_orig <- c()
+l <- unique(df[which(df$conn_type == 1), 2])
+for(i in 1:nrow(orig_n)){
+  if(orig_n[i,2] %in% l){
+    col_orig <- c(col_orig, "red")
+  }
+  else{
+    col_orig <- c(col_orig, "black")
+  }
+}
+rm(l)
+
+col_resp <- c()
+l <- unique(df[which(df$conn_type == 1), 3])
+for(i in 1:nrow(resp_n)){
+  if(resp_n[i,2] %in% l){
+    col_resp <- c(col_resp, "red")
+  }
+  else{
+    col_resp <- c(col_resp, "black")
+  }
+}
+rm(l)
+```
+
+Now we add the columns where each IP has its corresponding node number in the same row. The two added columns form our edge set, and it's then very easy to construct an adjacency matrix `A` from this data.
+
+```{r}
+df <- mutate(df, e1 = orig_n[orig_ip, 1])
+df <- mutate(df, e2 = resp_n[resp_ip, 1])
+head(df)
+
+A = sparseMatrix(i = df$e1, j = df$e2)
+```
+
+We carry out a singular value decomposition and extract the first 10 eigenvalues with the largest magnitude. After this we can easily find 10 dimensional embeddings for the originator and response IPs.
+
+```{r}
+d = 10
+SVD = irlba(A, nv=d)
+
+Res = SVD$v %*% diag(sqrt(SVD$d))     
+Ori = SVD$u %*% diag(sqrt(SVD$d))
+```
+
+The embeddings `Res` and `Ori` are 10 dimensional and therefore hard to visualise. We reduced the dimension by using t-distributed stochastic neighbor embedding onto 2 dimensions. Our colour vectors now come in handy, we plot each embedding and colour the node red if is an IP which was involved in a Snorted connection.
+
+```{r}
+set.seed(31)
+tsne_out_Res <- Rtsne(Res, check_duplicates = F)
+plot(tsne_out_Res$Y, pch=16, cex=.3, xaxt='n', yaxt='n',
+     col = col_resp, main = "Response IPs", xlab = "First Component",
+     ylab = "Second Component")
 
 
+set.seed(31)
+tsne_out_Ori <- Rtsne(Ori, check_duplicates = F)
+plot(tsne_out_Ori$Y, pch=16, cex=.3, xaxt='n', yaxt='n',
+     col = col_orig, main = "Originator IPs", xlab = "First Component",
+     ylab = "Second Component")
+```
+
+I'm pretty surprised by the outcome here! There is some pretty clean separation visible. Unfortunately I'm not convinced it will be terribly useful- we see plenty of red dots in the black majority lines. Of course this makes good intuitive sense: the black lines represent the most standard node behaviours but a given node in such a line may have behaved abnormally a few times, and thus be marked red but still be placed in the black line. The nodes I find to be particularly fascinating are the nodes which are red but look as if they've been pulled out of a nearby black line. These nodes could've been mostly well behaved but made just enough naughty connections to be assigned a slightly different position!
+
+It's important to note that this embedding made no use of how the connections evolve over time. I am confident that our constructed variables will be more informative if we can somehow account for each nodes historical behaviour.
+
+## Incorporating Time
+
+Incorporating the time into our embedding with the aim of running a classifier is difficult. I'm sure you're aware that when one runs the spectral embedding procedure the embedding we attain is not unique. The embedding is only unique up to transformation by $n$ by $n$ matrix $Q \in O(p,q)$ where $O(p,q) = \{M : M^TI_{p,q}M = I_{p,q}\}$ and $I_{p,q}$ is the diagonal matrix whose first $p$ entries are 1 and next $q$ entries are -1 such that $p+q=n$ (see [4]). Suppose we have one historical variable which is based on a graph embedding at an earlier time, in order for our classifier to extract anything worthwhile these historical variables must be meaningfully comparable, and only having uniqueness up to matrix $Q$ simply isn't enough.
+
+Let's simplify things by working in discrete time (indeed, we will soon be putting our timestamps into bins). We wish to embed our 'dynamic connection network' into $R^n \times T$ in a way which respects both of the following:
+
+* Cross sectional stability. At a given point in time nodes with similar connective behaviour are close in the latent space at that given time.
+
+* Longitudinal stability. At two different points in time nodes with similar connective behaviour are close in all coordinates except for the time coordinate.
+
+These conditions are formulated rigorously in [5]. An embedding satisfying both of these properties does in fact exist. Gallagher, Jones and Rubin-Delanchy proved that the 'unfolded adjacency spectral embedding' (UASE) satisfies both properties in [5]. We shall try to apply a UASE to our data.

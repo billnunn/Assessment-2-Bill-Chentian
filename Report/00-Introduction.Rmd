@@ -17,5 +17,5 @@ We have chosen to use the conn.log from the MACCDC 2012 dataset for our analysis
 
 3. After our exotic variable enrichment we re-train our random forest on the new dataset.
 
-We will assess whether our enrichment methods 'learnt' anything worthwhile about the data in two ways. The first is qualitative: did the performance of our classsifier change significantly? The second is quantitative: we look at variable importance metrics for our random forest, and see if any of our constructed variables score highly.
+We will assess whether our enrichment methods 'learnt' anything worthwhile about the data in two ways. The first is seeing whether the performance of our classifier changed significantly. The second is examining a few variable importance metrics for our random forest, and seeing if any of our constructed variables score highly.
 
