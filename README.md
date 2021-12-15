@@ -6,7 +6,7 @@ MACCDC2012 connection log analysis.
 * Bill
 * Chentian
 
-With ___ equity.
+With equal equity.
 
 ## Reading Order
 
@@ -21,7 +21,6 @@ Our report should be read in the following order:
 * 02-Initial_Classification
 * 03-Graph_Embedding
 * 04-Markov_Property
-* 05-Final_Classification
 
 All files are Rmd and the HTML output of each is included.
 
