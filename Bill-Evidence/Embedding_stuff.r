@@ -45,11 +45,13 @@ df <- mutate(df, e2 = resp_n[resp_ip, 1])
 head(df)
 
 M = sparseMatrix(i = df$e1, j = df$e2)
+dim(M)
 
 d = 10
 SVD = irlba(M, nv=d)
 
 Y = SVD$v %*% diag(sqrt(SVD$d))
+
 
 X = SVD$u %*% diag(sqrt(SVD$d))
 
@@ -68,8 +70,40 @@ plot(tsne_out_X$Y, pch=16, cex=.3, xaxt='n', yaxt='n', ann=F,
 
 
 
-# We know that 
+# Split into 12 and column bind
 
+sdf <- df[which(df$ts >= 0 & df$ts <= 200),]
+A <- matrix(0, 180, 2715)
+for(i in 1:nrow(sdf)){
+  A[sdf[i,5],sdf[i,6]] = 1
+}
+J <- Matrix(A, sparse = T)
+rm(A,i)
+
+for(z in 2:12){
+  sdf <- df[which(df$ts >= 200*(z-1) & df$ts <= 200*z),]
+  A <- matrix(0, 180, 2715)
+  for(i in 1:nrow(sdf)){
+    A[sdf[i,5],sdf[i,6]] = 1
+  }
+  J <- cbind(J, Matrix(A, sparse = T))
+  rm(A,i)
+}
+
+
+
+d = 2
+SVD = irlba(J, nv=d)
+UASE = SVD$v %*% diag(sqrt(SVD$d))
+
+
+plot(log(UASE[1:2715,1]), log(UASE[1:2715,2]))
+
+plot(log(UASE[2716:5430,1]), log(UASE[2716:5430,2]))
+
+plot(log(UASE[5431:8145,1]), log(UASE[5431:8145,2]))
+
+plot(log(UASE[8146:10860,1]), log(UASE[8146:10860,2]))
 
 
 

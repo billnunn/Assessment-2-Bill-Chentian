@@ -1,0 +1,16 @@
+---
+title: "Sources"
+author: "Bill"
+date: "15/12/2021"
+output: html_document
+---
+
+[1] Ishwaran H, Kogalur UB, Blackstone EH, Lauer MS. Random survival forests, The Annals of Applied Statistics, 2(3), 841-860. (2008)
+
+[2] Ishwaran H. Variable importance in binary regression trees and forests, Electronic J. Statististics, 1:519-537. (2007)
+
+[3] Whitely N, Gray A, Rubin-Delanchy P. Matrix factorisation and the interpretation of geodesic distance, https://arxiv.org/abs/2106.01260. (2021)
+
+[4] Rubin-Delanchy P, Cape J, Tang M, Priebe CE. A statistical interpretation of spectral embedding: the generalised random dot product graph, https://arxiv.org/abs/1709.05506 (2017)
+
+[5] Gallagher I, Jones A, Rubin-Delanchy P. Spectral embedding for dynamic networks with stability guarantees, https://arxiv.org/abs/2106.01282 (2021)

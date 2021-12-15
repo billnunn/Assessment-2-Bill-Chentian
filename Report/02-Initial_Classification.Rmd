@@ -10,9 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(randomForestSRC)
 ```
 
-**Need to read in the prepared dataset from Google drive behind the scenes**
-**For now:**
-
 ```{r}
 df <- read.csv("/Users/willnunn/Desktop/Assessment/ProcessedData.csv",
                 row.names = 1)

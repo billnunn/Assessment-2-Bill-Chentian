@@ -1,7 +1,7 @@
 ---
 title: "03-Graph Embeddings"
 author: "Bill"
-date: "10/12/2021"
+date: "14/12/2021"
 output: html_document
 ---
 
@@ -127,4 +127,45 @@ Let's simplify things by working in discrete time (indeed, we will soon be putti
 
 * Longitudinal stability. At two different points in time nodes with similar connective behaviour are close in all coordinates except for the time coordinate.
 
-These conditions are formulated rigorously in [5]. An embedding satisfying both of these properties does in fact exist. Gallagher, Jones and Rubin-Delanchy proved that the 'unfolded adjacency spectral embedding' (UASE) satisfies both properties in [5]. We shall try to apply a UASE to our data.
+These conditions are formulated rigorously in [5]. An embedding satisfying both of these properties does in fact exist. Gallagher, Jones and Rubin-Delanchy proved that the 'unfolded adjacency spectral embedding' (UASE) satisfies both properties in [5]. We shall try to apply a UASE to our data. We start by splitting the data into 12 different time bins of 200 seconds.
+
+```{r}
+sdf <- df[which(df$ts >= 0 & df$ts <= 200),]
+A <- matrix(0, 180, 2715)
+for(i in 1:nrow(sdf)){
+  A[sdf[i,5],sdf[i,6]] = 1
+}
+J <- Matrix(A, sparse = T)
+rm(A,i)
+
+for(z in 2:12){
+  sdf <- df[which(df$ts >= 200*(z-1) & df$ts <= 200*z),]
+  A <- matrix(0, 180, 2715)
+  for(i in 1:nrow(sdf)){
+    A[sdf[i,5],sdf[i,6]] = 1
+  }
+  J <- cbind(J, Matrix(A, sparse = T))
+  rm(A,i)
+}
+```
+
+And we run a sanity check to see if the number of columns is really the number of response IPs.
+
+```{r}
+dim(J)[2]/12 == 2715
+```
+
+Great. Like before, I embed the response IPs into 10 dimensions. The previous trick of reducing dimensions using t-SNE will no longer work because this process is stochastic and we'd lose the longitudinal stability we worked so hard for.
+
+```{r}
+d = 10
+SVD = irlba(J, nv=d)
+UASE = SVD$v %*% diag(sqrt(SVD$d))
+```
+
+I plotted a few cross sections of the UASE at different time bins and the longitudinal stability was hard to see. I've been awake too long, am having trouble writing sense, and think I'll just have to leave my work unfinished. Massive apologies.
+
+## Re-training our classifier.
+
+Instead of doing this I'll give a brief description of what I planned on doing. There were two types of enrichment variable I wanted to derive. The first was the outputs of the t-SNE on our spectral embedding, each IP would have the components of the t-SNE output on the corresponding row. The second, and the one I was really excited for, was the position of each IP in the previous time bin of the UASE embedding. My hypothesis is that some of the historical context of the IP can be consistently encoded by this latter variable, and the classifier has a chance of picking up on it. I thought the idea of exploiting the longitudinal stability of the UASE embedding in this way was a neat one.
+
